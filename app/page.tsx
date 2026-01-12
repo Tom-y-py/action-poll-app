@@ -1,65 +1,174 @@
-import Image from "next/image";
+import { supabase } from '@/lib/supabase'
+import { createEvent } from './actions'
+import Link from 'next/link'
+import { format, parseISO } from 'date-fns'
+import { cn } from '@/lib/utils'
 
-export default function Home() {
+export default async function LandingPage() {
+  // Fetch existing events (limiting to 10 for the MVP)
+  const { data: events } = await supabase
+    .from('events')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(10)
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+    <main className="min-h-screen bg-slate-50 py-12 px-6">
+      <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-12">
+        
+        {/* Left Column: Create Event */}
+        <section className="space-y-8">
+          <div>
+            <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
+              Meetup Planner
+            </h1>
+            <p className="text-slate-500 mt-2 text-lg">
+              Coordinate dates with your team instantly.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <h2 className="text-xl font-bold mb-6 text-slate-800">Create New Event</h2>
+
+            <form action={createEvent} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-600 mb-1">
+                  Event Title
+                </label>
+                <input
+                  required
+                  name="title"
+                  type="text"
+                  placeholder="Summer Barbecue"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    required
+                    name="start_date"
+                    type="date"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    required
+                    name="end_date"
+                    type="date"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+              >
+                Generate Link
+              </button>
+            </form>
+          </div>
+        </section>
+
+        {/* Right Column: Existing Events */}
+        <section className="space-y-6">
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] pt-4">
+            Recent Events
+          </h2>
+
+          <div className="space-y-3">
+            {events && events.length > 0 ? (
+              events.map((event) => {
+                const isClosed = !!event.decided_date
+
+                return (
+                  <Link
+                    key={event.id}
+                    href={`/event/${event.id}`}
+                    className={cn(
+                      'block p-5 border rounded-2xl transition-all group relative overflow-hidden',
+                      isClosed
+                        ? 'bg-amber-50/50 border-amber-200 shadow-sm'
+                        : 'bg-white border-slate-200 hover:border-emerald-500 hover:shadow-md'
+                    )}
+                  >
+                    {isClosed && (
+                      <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-widest">
+                        Confirmed
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3
+                          className={cn(
+                            'font-bold transition-colors',
+                            isClosed
+                              ? 'text-amber-900'
+                              : 'text-slate-800 group-hover:text-emerald-700'
+                          )}
+                        >
+                          {event.title}
+                        </h3>
+
+                        <p
+                          className={cn(
+                            'text-sm font-medium',
+                            isClosed ? 'text-amber-700' : 'text-slate-500'
+                          )}
+                        >
+                          {isClosed ? (
+                            <span className="flex items-center gap-1">
+                              📍{' '}
+                              {format(
+                                parseISO(event.decided_date),
+                                'MMMM do, yyyy'
+                              )}
+                            </span>
+                          ) : (
+                            `${format(
+                              parseISO(event.start_date),
+                              'MMM d'
+                            )} – ${format(
+                              parseISO(event.end_date),
+                              'MMM d, yyyy'
+                            )}`
+                          )}
+                        </p>
+                      </div>
+
+                      <span
+                        className={
+                          isClosed
+                            ? 'text-amber-400'
+                            : 'text-slate-300 group-hover:text-emerald-500'
+                        }
+                      >
+                        {isClosed ? '★' : '→'}
+                      </span>
+                    </div>
+                  </Link>
+                )
+              })
+            ) : (
+              <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
+                <p className="text-slate-400 italic">No events found.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+      </div>
+    </main>
+  )
 }
