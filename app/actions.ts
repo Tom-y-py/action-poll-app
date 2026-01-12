@@ -2,31 +2,26 @@
 
 import { supabase } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
-import { nanoid } from 'nanoid'
+import { revalidatePath } from 'next/cache';
 
 
 export async function createEvent(formData: FormData) {
   const title = formData.get('title') as string;
-  const startDate = formData.get('start_date') as string;
-  const endDate = formData.get('end_date') as string;
-  
-  // Generate a simple 6-character secret
-  const adminSecret = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const start_date = formData.get('start_date') as string;
+  const end_date = formData.get('end_date') as string;
+  const admin_secret = Math.random().toString(36).substring(2, 8);
 
   const { data, error } = await supabase
     .from('events')
-    .insert([{ 
-      title, 
-      start_date: startDate, 
-      end_date: endDate,
-      admin_secret: adminSecret 
-    }])
+    .insert([{ title, start_date, end_date, admin_secret }])
     .select()
     .single();
 
-  if (!error) {
-    // Redirect with the secret in the URL hash so it's not stored in history forever
-    // e.g., /event/[id]#admin=ABCDEF
-    redirect(`/event/${data.id}#admin=${adminSecret}`);
-  }
+  if (error) throw new Error(error.message);
+
+  // MISSION_COMMAND: Purge the cache for the home page
+  revalidatePath('/'); 
+  
+  // Redirect to the new mission page
+  redirect(`/event/${data.id}#admin=${admin_secret}`);
 }

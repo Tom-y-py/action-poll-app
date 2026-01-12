@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic';
+
 export default async function LandingPage() {
   // Fetch existing events (limiting to 10 for the MVP)
   const { data: events } = await supabase
